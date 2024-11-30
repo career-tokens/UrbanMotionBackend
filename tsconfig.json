@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+      "target": "ES6",
+      "module": "commonjs",
+      "outDir": "./build",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "resolveJsonModule": true
+    },
+    "include": ["api/**/*.ts", "controllers/**/*.ts", "models/**/*.ts", "routes/**/*.ts", "utils/**/*.ts"]
+  }
+  
