@@ -1,20 +1,46 @@
 import { Request, Response } from "express";
 import  Retailer  from "../models/Retailer";
 import { Session } from "../models/Session";
+import { z } from "zod";
+
+// Define Zod schema for retailer validation
+const addRetailerSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
+  otherDetails: z.record(z.string()).optional(), // Optional object for additional retailer details
+});
 
 export const addRetailer = async (req: Request, res: Response) => {
-  const { name, email, password, ...otherDetails } = req.body;
-
   try {
-    const existingRetailer = await Retailer.findOne({ email });
+    // Validate request body using Zod schema
+    const validatedData = addRetailerSchema.parse(req.body);
+
+    // Check if a retailer with the given email already exists
+    const existingRetailer = await Retailer.findOne({ email: validatedData.email });
     if (existingRetailer) {
       return res.status(400).json({ message: "Retailer already exists" });
     }
 
+    // Create a new retailer
+    const { name, email, password, otherDetails } = validatedData;
     const newRetailer = await Retailer.create({ name, email, password, ...otherDetails });
-    return res.status(201).json({ message: "Retailer added successfully", retailer: newRetailer });
-  } catch (err) {
-    return res.status(500).json({ message: "Internal server error", error: err });
+
+    return res.status(201).json({
+      message: "Retailer added successfully",
+      retailer: newRetailer,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      // Handle Zod validation errors
+      return res.status(400).json({
+        message: "Validation error",
+        errors: error.errors.map((err) => ({ path: err.path, message: err.message })),
+      });
+    }
+
+    // Handle other errors
+    return res.status(500).json({ message: "Internal server error", error });
   }
 };
 

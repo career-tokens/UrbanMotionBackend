@@ -6,7 +6,8 @@ interface IRetailer extends Document {
     password: string;
     verificationType: "aadhar" | "pan";
     verificationId: string;
-    carsSubmittedIdArray: mongoose.Types.ObjectId[];
+  carsSubmittedIdArray: mongoose.Types.ObjectId[];
+  isVerified: boolean;
   }
   
   const retailerSchema = new Schema<IRetailer>({
@@ -16,6 +17,7 @@ interface IRetailer extends Document {
     verificationType: { type: String, enum: ["aadhar", "pan"], required: true },
     verificationId: { type: String, required: true },
     carsSubmittedIdArray: [{ type: mongoose.Schema.Types.ObjectId, ref: "Car" }],
+    isVerified: { type: Boolean, default: false }, 
   });
   
   export default mongoose.model<IRetailer>("Retailer", retailerSchema);

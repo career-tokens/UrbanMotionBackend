@@ -8,6 +8,6 @@
       "skipLibCheck": true,
       "resolveJsonModule": true
     },
-    "include": ["api/**/*.ts", "controllers/**/*.ts", "models/**/*.ts", "routes/**/*.ts", "utils/**/*.ts"]
+    "include": ["api/**/*.ts", "controllers/**/*.ts", "models/**/*.ts", "routes/**/*.ts", "utils/**/*.ts", "utils/sendMail.ts", "utils/sendMail.ts"]
   }
   
