@@ -9,7 +9,8 @@ const addRetailerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters long"),
-  otherDetails: z.record(z.string()).optional(), // Optional object for additional retailer details
+  verificationType: z.enum(["aadhar", "pan"]),
+  verificationId: z.string().min(1, "Verification ID is required"),
 });
 
 export const addRetailer = async (req: Request, res: Response) => {

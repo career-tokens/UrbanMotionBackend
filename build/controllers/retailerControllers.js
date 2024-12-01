@@ -22,7 +22,8 @@ const addRetailerSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, "Name is required"),
     email: zod_1.z.string().email("Invalid email address"),
     password: zod_1.z.string().min(6, "Password must be at least 6 characters long"),
-    otherDetails: zod_1.z.record(zod_1.z.string()).optional(), // Optional object for additional retailer details
+    verificationType: zod_1.z.enum(["aadhar", "pan"]),
+    verificationId: zod_1.z.string().min(1, "Verification ID is required"),
 });
 const addRetailer = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
