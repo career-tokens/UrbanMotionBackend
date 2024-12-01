@@ -7,6 +7,8 @@ import retailerRoutes from "../routes/retailerRoutes";
 import carRoutes from "../routes/carRoutes";
 import adminRoutes from "../routes/adminRoutes";
 import sessionRoute from "../routes/sessionRoute";
+import verifyRoutes from "../routes/verifyRoutes";
+
 
 dotenv.config();
 connectDB();
@@ -23,5 +25,6 @@ app.use("/api/retailers", retailerRoutes);
 app.use("/api/cars", carRoutes);
 app.use("/api/admins", adminRoutes);
 app.use("/api/sessions", sessionRoute);
+app.use("/api/verify", verifyRoutes);
 
 app.listen(3000, () => console.log("Server ready on port 3000."));

@@ -15,21 +15,41 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAllAdmins = exports.verifyAdmin = exports.addAdmin = void 0;
 const Admin_1 = __importDefault(require("../models/Admin"));
 const Session_1 = require("../models/Session");
+const zod_1 = require("zod");
+const addAdminSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1, "Name is required"),
+    email: zod_1.z.string().email("Invalid email address"),
+    password: zod_1.z.string().min(6, "Password must be at least 6 characters long"),
+    position: zod_1.z.string().min(1, "Position is required"),
+    passcode: zod_1.z.string().min(1, "Passcode is required"),
+});
 const addAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { name, email, password, position, passcode } = req.body;
+        // Validate request body using Zod schema
+        const validatedData = addAdminSchema.parse(req.body);
         // Check if the passcode matches
-        if (passcode !== process.env.ADMIN_PASSCODE) {
+        if (validatedData.passcode !== process.env.ADMIN_PASSCODE) {
             return res.status(403).json({ message: "Invalid passcode" });
         }
-        const existingAdmin = yield Admin_1.default.findOne({ email });
+        // Check if an admin with the given email already exists
+        const existingAdmin = yield Admin_1.default.findOne({ email: validatedData.email });
         if (existingAdmin) {
             return res.status(400).json({ message: "Admin already exists" });
         }
+        // Create a new admin
+        const { name, email, password, position } = validatedData;
         const admin = yield Admin_1.default.create({ name, email, password, position });
         res.status(201).json(admin);
     }
     catch (error) {
+        if (error instanceof zod_1.z.ZodError) {
+            // Handle Zod validation errors
+            return res.status(400).json({
+                message: "Validation error",
+                errors: error.errors.map((err) => ({ path: err.path, message: err.message })),
+            });
+        }
+        // Handle other errors
         res.status(500).json({ message: "Error adding admin", error });
     }
 });

@@ -42,5 +42,6 @@ const customerSchema = new mongoose_1.Schema({
     drivingLicenseId: { type: String, required: true },
     verificationType: { type: String, enum: ["aadhar", "pan"], required: true },
     verificationId: { type: String, required: true },
+    isVerified: { type: Boolean, default: false },
 });
 exports.default = mongoose_1.default.model("Customer", customerSchema);

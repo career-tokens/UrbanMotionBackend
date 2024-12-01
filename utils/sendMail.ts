@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer"
 
 // Function to send email
-export default async function sendEmail(to:string, subject:string, text:string) {
+export default async function sendEmail(to:string, subject:string, html:string) {
     // Create a transporter object using the default SMTP transport
     let transporter = nodemailer.createTransport({
         service:"gmail",
@@ -21,7 +21,7 @@ export default async function sendEmail(to:string, subject:string, text:string) 
     let mailOptions = {
         to: to,                       // list of receivers
         subject: subject,             // Subject line
-        text: text                    // plain text body
+        html: html                    // plain html body
     };
 
     try {

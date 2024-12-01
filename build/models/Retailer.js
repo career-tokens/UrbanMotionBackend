@@ -41,5 +41,6 @@ const retailerSchema = new mongoose_1.Schema({
     verificationType: { type: String, enum: ["aadhar", "pan"], required: true },
     verificationId: { type: String, required: true },
     carsSubmittedIdArray: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Car" }],
+    isVerified: { type: Boolean, default: false },
 });
 exports.default = mongoose_1.default.model("Retailer", retailerSchema);

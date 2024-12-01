@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Customer from "../models/Customer";
 import { Session } from "../models/Session";
 import { z } from "zod";
+import sendEmail from "../utils/sendMail";
 
 const addCustomerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -28,7 +29,21 @@ export const addCustomer = async (req: Request, res: Response) => {
 
     // Create a new customer
     const customer = await Customer.create(validatedData);
-    res.status(201).json(customer);
+
+    // Send a verification email
+    const verificationLink = `${process.env.BACKEND_URL}/api/verify/verify-customer?id=${customer._id}`;
+    const emailSubject = "Verify Your Email - Customer Registration";
+    const emailHtml = `
+      <p>Hello ${customer.name},</p>
+      <p>Thank you for registering. Please verify your email to complete the registration process.</p>
+      <p>If this wasn't you, you can ignore this email.</p>
+      <a href="${verificationLink}" style="padding: 10px 15px; color: #fff; background-color: #007bff; text-decoration: none;">Verify Email</a>
+    `;
+
+    await sendEmail(customer.email, emailSubject, emailHtml);
+
+    // Respond with success
+    res.status(201).json({ message: "Verification link has been sent succesfully !" });
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Handle Zod validation errors
@@ -43,22 +58,52 @@ export const addCustomer = async (req: Request, res: Response) => {
   }
 };
 
+
 export const verifyCustomer = async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-  
-    try {
-      const customer = await Customer.findOne({ email, password });
-      if (!customer) {
-        return res.status(401).json({ verified: false, message: "Invalid credentials" });
-      }
-  
-      // Create a session
-      const session = await Session.create({ data: customer });
-      return res.status(200).json({ verified: true, sessionId: session._id });
-    } catch (err) {
-      return res.status(500).json({ message: "Internal server error", error: err });
+  const { email, password } = req.body;
+
+  try {
+    // Check if an account with the provided email exists
+    const customer = await Customer.findOne({ email });
+    if (!customer) {
+      return res
+        .status(404)
+        .json({ message: "No account found with this email. Please sign up." });
     }
-  };
+
+    // Check if the email is not verified
+    if (!customer.isVerified) {
+      const verificationUrl = `${process.env.BACKEND_URL}/api/verify/verify-customer?id=${customer._id}`;
+      const emailSubject = "Verify Your Account";
+      const emailHtml = `
+        <p>Hello ${customer.name},</p>
+        <p>It seems like your email has not been verified yet.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+        <a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; color: white; background-color: #007BFF; text-decoration: none; border-radius: 5px;">Verify Your Email</a>
+      `;
+
+      await sendEmail(customer.email, emailSubject, emailHtml);
+
+      return res.status(403).json({
+        message: "Your email is not verified. A verification email has been sent.",
+      });
+    }
+
+    // Check if the password is incorrect
+    if (customer.password !== password) {
+      return res.status(401).json({ message: "Incorrect password." });
+    }
+
+    // If all checks pass, create a session
+    const session = await Session.create({ data: customer });
+    return res
+      .status(200)
+      .json({ verified: true, sessionId: session._id, message: "Login successful." });
+  } catch (err) {
+    return res.status(500).json({ message: "Internal server error", error: err });
+  }
+};
+
 
   export const getAllCustomers = async (req: Request, res: Response) => {
     try {
