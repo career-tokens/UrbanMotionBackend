@@ -12,6 +12,7 @@ export const addCar = async (req: Request, res: Response) => {
     model,
     carType,
     carPricing,
+    carImage, // Optional field for car image
   } = req.body;
 
   try {
@@ -26,6 +27,7 @@ export const addCar = async (req: Request, res: Response) => {
       model,
       carType,
       carPricing,
+      carImage: carImage || null, // Set to null if not provided
     });
 
     return res.status(201).json({ message: "Car added successfully", car: newCar });
@@ -114,6 +116,66 @@ export const viewAllCars = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal server error", error: err });
   }
 };
+
+//GET car details
+export const getCarDetailsByRegistrationNumber = async (req: Request, res: Response) => {
+  const { registrationNumber } = req.params;
+
+  try {
+    // Find the car by registration number
+    const car = await Car.findOne({ registrationNumber })
+      .populate("owner", "name email") // Populate owner details (adjust fields as per your Retailer schema)
+      .populate("handedTo", "name email"); // Populate handedTo details (adjust fields as per your Customer schema)
+
+    if (!car) {
+      return res.status(404).json({
+        message: "Car not found",
+      });
+    }
+
+    // Send the car details in response
+    res.status(200).json({
+      success: true,
+      data: car,
+    });
+  } catch (error:any) {
+    console.error("Error fetching car details:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching car details",
+      error: error.message,
+    });
+  }
+};
+
+//delete car
+export const deleteCarByRegistrationNumber = async (req: Request, res: Response) => {
+  const { registrationNumber } = req.params;
+
+  try {
+    const car = await Car.findOneAndDelete({ registrationNumber });
+
+    if (!car) {
+      return res.status(404).json({
+        message: "Car with this registration number does not exist",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Car deleted successfully",
+      deletedCar: car,
+    });
+  } catch (error:any) {
+    console.error("Error deleting car:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while deleting the car",
+      error: error.message,
+    });
+  }
+};
+
 
 export default {
   addCar,

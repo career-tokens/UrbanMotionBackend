@@ -1,3 +1,4 @@
+import { Request, Response } from "express";
 import mongoose, { Schema } from "mongoose";
 
 interface ICar extends Document {
@@ -10,6 +11,7 @@ interface ICar extends Document {
   isHanded: boolean;
   durationGivenFor: string;
   rating: number;
+  carImage?: string | null;
   carPricing: {
     weekly: number;
     monthly: number;
@@ -25,8 +27,9 @@ const carSchema = new Schema<ICar>({
   model: { type: String, required: true },
   carType: { type: String, required: true },
   isHanded: { type: Boolean, default: false },
-  durationGivenFor: { type: String,default:null },
+  durationGivenFor: { type: String, default: null },
   rating: { type: Number, default: 0 },
+  carImage: { type: String, default: null },
   carPricing: {
     weekly: { type: Number, required: true },
     monthly: { type: Number, required: true },
