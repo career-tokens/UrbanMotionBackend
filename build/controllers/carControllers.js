@@ -12,14 +12,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.viewAllCars = exports.returnCar = exports.bookCar = exports.getAvailableCars = exports.addCar = void 0;
+exports.deleteCarByRegistrationNumber = exports.getCarDetailsByRegistrationNumber = exports.viewAllCars = exports.returnCar = exports.bookCar = exports.getAvailableCars = exports.addCar = void 0;
 const Car_1 = __importDefault(require("../models/Car"));
 /**
  * Add a new car
  * POST /add-car
  */
 const addCar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { registrationNumber, owner, model, carType, carPricing, } = req.body;
+    const { registrationNumber, owner, model, carType, carPricing, carImage, // Optional field for car image
+     } = req.body;
     try {
         const existingCar = yield Car_1.default.findOne({ registrationNumber });
         if (existingCar) {
@@ -31,6 +32,7 @@ const addCar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             model,
             carType,
             carPricing,
+            carImage: carImage || null, // Set to null if not provided
         });
         return res.status(201).json({ message: "Car added successfully", car: newCar });
     }
@@ -117,6 +119,61 @@ const viewAllCars = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.viewAllCars = viewAllCars;
+//GET car details
+const getCarDetailsByRegistrationNumber = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { registrationNumber } = req.query;
+    try {
+        // Find the car by registration number
+        const car = yield Car_1.default.findOne({ registrationNumber })
+            .populate("owner", "name email") // Populate owner details (adjust fields as per your Retailer schema)
+            .populate("handedTo", "name email"); // Populate handedTo details (adjust fields as per your Customer schema)
+        if (!car) {
+            return res.status(404).json({
+                message: "Car not found",
+            });
+        }
+        // Send the car details in response
+        res.status(200).json({
+            success: true,
+            data: car,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching car details:", error);
+        res.status(500).json({
+            success: false,
+            message: "An error occurred while fetching car details",
+            error: error.message,
+        });
+    }
+});
+exports.getCarDetailsByRegistrationNumber = getCarDetailsByRegistrationNumber;
+//delete car
+const deleteCarByRegistrationNumber = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { registrationNumber } = req.query;
+    try {
+        const car = yield Car_1.default.findOneAndDelete({ registrationNumber });
+        if (!car) {
+            return res.status(404).json({
+                message: "Car with this registration number does not exist",
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            message: "Car deleted successfully",
+            deletedCar: car,
+        });
+    }
+    catch (error) {
+        console.error("Error deleting car:", error);
+        res.status(500).json({
+            success: false,
+            message: "An error occurred while deleting the car",
+            error: error.message,
+        });
+    }
+});
+exports.deleteCarByRegistrationNumber = deleteCarByRegistrationNumber;
 exports.default = {
     addCar: exports.addCar,
     getAvailableCars: exports.getAvailableCars,

@@ -119,7 +119,7 @@ export const viewAllCars = async (req: Request, res: Response) => {
 
 //GET car details
 export const getCarDetailsByRegistrationNumber = async (req: Request, res: Response) => {
-  const { registrationNumber } = req.params;
+  const { registrationNumber } = req.query;
 
   try {
     // Find the car by registration number
@@ -150,7 +150,7 @@ export const getCarDetailsByRegistrationNumber = async (req: Request, res: Respo
 
 //delete car
 export const deleteCarByRegistrationNumber = async (req: Request, res: Response) => {
-  const { registrationNumber } = req.params;
+  const { registrationNumber } = req.query;
 
   try {
     const car = await Car.findOneAndDelete({ registrationNumber });

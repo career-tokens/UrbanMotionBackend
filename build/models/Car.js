@@ -44,6 +44,7 @@ const carSchema = new mongoose_1.Schema({
     isHanded: { type: Boolean, default: false },
     durationGivenFor: { type: String, default: null },
     rating: { type: Number, default: 0 },
+    carImage: { type: String, default: null },
     carPricing: {
         weekly: { type: Number, required: true },
         monthly: { type: Number, required: true },
