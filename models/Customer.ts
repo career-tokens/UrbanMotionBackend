@@ -13,7 +13,7 @@ interface ICustomer extends Document {
 
 const customerSchema = new Schema<ICustomer>({
   name: { type: String, required: true },
-  carCurrentlyBookedId: { type: mongoose.Schema.Types.ObjectId, ref: "Car", default: null },
+  carCurrentlyBookedId: { type: String },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   drivingLicenseId: { type: String, required: true },

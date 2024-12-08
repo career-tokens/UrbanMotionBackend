@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Car from "../models/Car";
+import Customer from "../models/Customer";
 
 /**
  * Add a new car
@@ -67,6 +68,14 @@ export const bookCar = async (req: Request, res: Response) => {
     car.handedOn = new Date();
     car.durationGivenFor = durationGivenFor;
     await car.save();
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    customer.carCurrentlyBookedId = registrationNumber;
+    await customer.save();
+    
 
     return res.status(200).json({ message: "Car booked successfully", car });
   } catch (err) {
