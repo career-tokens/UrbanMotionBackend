@@ -107,7 +107,7 @@ const returnCar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.returnCar = returnCar;
 /**
  * View all cars
- * GET /view-all-cars
+ * GET /all-cars
  */
 const viewAllCars = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

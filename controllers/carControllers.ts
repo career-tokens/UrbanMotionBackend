@@ -106,7 +106,7 @@ export const returnCar = async (req: Request, res: Response) => {
 
 /**
  * View all cars
- * GET /view-all-cars
+ * GET /all-cars
  */
 export const viewAllCars = async (req: Request, res: Response) => {
   try {

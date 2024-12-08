@@ -43,7 +43,7 @@ carRouter.post("/add-car", carControllers_1.default.addCar);
 carRouter.get("/get-available-cars", carControllers_1.default.getAvailableCars);
 carRouter.post("/book-car", carControllers_1.default.bookCar);
 carRouter.post("/return-car", carControllers_1.default.returnCar);
-carRouter.get("/all-cars", carControllers_1.getAvailableCars);
+carRouter.get("/all-cars", carControllers_1.viewAllCars);
 carRouter.get("/car", carControllers_1.getCarDetailsByRegistrationNumber);
 carRouter.delete("/delete-car", carControllers_1.deleteCarByRegistrationNumber);
 exports.default = carRouter;
