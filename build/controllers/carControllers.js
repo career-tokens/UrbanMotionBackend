@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteCarByRegistrationNumber = exports.getCarDetailsByRegistrationNumber = exports.viewAllCars = exports.returnCar = exports.bookCar = exports.getAvailableCars = exports.addCar = void 0;
 const Car_1 = __importDefault(require("../models/Car"));
+const Customer_1 = __importDefault(require("../models/Customer"));
 /**
  * Add a new car
  * POST /add-car
@@ -71,6 +72,12 @@ const bookCar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         car.handedOn = new Date();
         car.durationGivenFor = durationGivenFor;
         yield car.save();
+        const customer = yield Customer_1.default.findById(customerId);
+        if (!customer) {
+            return res.status(404).json({ message: "Customer not found" });
+        }
+        customer.carCurrentlyBookedId = registrationNumber;
+        yield customer.save();
         return res.status(200).json({ message: "Car booked successfully", car });
     }
     catch (err) {
@@ -89,6 +96,12 @@ const returnCar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!car) {
             return res.status(404).json({ message: "Car is not currently handed out" });
         }
+        const customer = yield Customer_1.default.findById(car.handedTo);
+        if (!customer) {
+            return res.status(404).json({ message: "Customer not found" });
+        }
+        customer.carCurrentlyBookedId = null;
+        yield customer.save();
         car.isHanded = false;
         car.handedTo = null;
         car.handedOn = null;

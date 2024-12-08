@@ -95,6 +95,14 @@ export const returnCar = async (req: Request, res: Response) => {
     if (!car) {
       return res.status(404).json({ message: "Car is not currently handed out" });
     }
+    
+    const customer = await Customer.findById(car.handedTo);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    customer.carCurrentlyBookedId = null;
+    await customer.save();
 
     car.isHanded = false;
     car.handedTo = null;
@@ -111,7 +119,6 @@ export const returnCar = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal server error", error: err });
   }
 };
-
 
 /**
  * View all cars

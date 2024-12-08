@@ -36,7 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const customerSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    carCurrentlyBookedId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: "Car", default: null },
+    carCurrentlyBookedId: { type: String },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     drivingLicenseId: { type: String, required: true },
