@@ -113,3 +113,60 @@ export const verifyCustomer = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Error retrieving customers", error });
     }
 };
+
+
+
+export const updateCustomerByEmail = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const {
+      email,
+      name,
+      password,
+      drivingLicenseId,
+      verificationType,
+      verificationId,
+    }: {
+      email: string;
+      name?: string;
+      password?: string;
+      drivingLicenseId?: string;
+      verificationType?: "aadhar" | "pan";
+      verificationId?: string;
+    } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required to update customer." });
+    }
+
+    // Prepare the fields to update explicitly
+    const updateFields: Partial<{
+      name: string;
+      password: string;
+      drivingLicenseId: string;
+      verificationType: "aadhar" | "pan";
+      verificationId: string;
+    }> = {};
+
+    if (name) updateFields.name = name;
+    if (password) updateFields.password = password;
+    if (drivingLicenseId) updateFields.drivingLicenseId = drivingLicenseId;
+    if (verificationType) updateFields.verificationType = verificationType;
+    if (verificationId) updateFields.verificationId = verificationId;
+
+    // Find and update the customer by email
+    const updatedCustomer = await Customer.findOneAndUpdate(
+      { email },
+      { $set: updateFields },
+      { new: true, runValidators: true } // Return the updated document
+    );
+
+    if (!updatedCustomer) {
+      return res.status(404).json({ message: "Customer not found." });
+    }
+
+    return res.status(200).json({ message: "Customer updated successfully.", customer: updatedCustomer });
+  } catch (error) {
+    console.error("Error updating customer:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};

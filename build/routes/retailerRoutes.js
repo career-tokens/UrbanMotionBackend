@@ -9,4 +9,5 @@ const retailerRouter = express_1.default.Router();
 retailerRouter.post("/add-retailer", retailerControllers_1.addRetailer);
 retailerRouter.post("/verify-retailer", retailerControllers_1.verifyRetailer);
 retailerRouter.get("/all-retailers", retailerControllers_1.getAllRetailers);
+retailerRouter.post("/update-retailer", retailerControllers_1.updateRetailerByEmail);
 exports.default = retailerRouter;

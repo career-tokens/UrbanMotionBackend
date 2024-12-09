@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllRetailers = exports.verifyRetailer = exports.addRetailer = void 0;
+exports.updateRetailerByEmail = exports.getAllRetailers = exports.verifyRetailer = exports.addRetailer = void 0;
 const Retailer_1 = __importDefault(require("../models/Retailer"));
 const Session_1 = require("../models/Session");
 const zod_1 = require("zod");
@@ -112,3 +112,33 @@ const getAllRetailers = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.getAllRetailers = getAllRetailers;
+const updateRetailerByEmail = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email, name, password, verificationType, verificationId } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: "Email is required to update retailer." });
+        }
+        // Prepare the fields to update explicitly
+        const updateFields = {};
+        if (name)
+            updateFields.name = name;
+        if (password)
+            updateFields.password = password;
+        if (verificationType)
+            updateFields.verificationType = verificationType;
+        if (verificationId)
+            updateFields.verificationId = verificationId;
+        // Find and update the retailer by email
+        const updatedRetailer = yield Retailer_1.default.findOneAndUpdate({ email }, { $set: updateFields }, { new: true, runValidators: true } // Return the updated document
+        );
+        if (!updatedRetailer) {
+            return res.status(404).json({ message: "Retailer not found." });
+        }
+        return res.status(200).json({ message: "Retailer updated successfully.", retailer: updatedRetailer });
+    }
+    catch (error) {
+        console.error("Error updating retailer:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+});
+exports.updateRetailerByEmail = updateRetailerByEmail;

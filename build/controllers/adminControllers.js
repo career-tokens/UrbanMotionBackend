@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllAdmins = exports.verifyAdmin = exports.addAdmin = void 0;
+exports.updateAdminByEmail = exports.getAllAdmins = exports.verifyAdmin = exports.addAdmin = void 0;
 const Admin_1 = __importDefault(require("../models/Admin"));
 const Session_1 = require("../models/Session");
 const zod_1 = require("zod");
@@ -80,3 +80,31 @@ const getAllAdmins = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.getAllAdmins = getAllAdmins;
+const updateAdminByEmail = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email, position, name, password } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: "Email is required to update admin." });
+        }
+        // Prepare the fields to update explicitly
+        const updateFields = {};
+        if (position)
+            updateFields.position = position;
+        if (name)
+            updateFields.name = name;
+        if (password)
+            updateFields.password = password;
+        // Find and update the admin by email
+        const updatedAdmin = yield Admin_1.default.findOneAndUpdate({ email }, { $set: updateFields }, { new: true, runValidators: true } // Return the updated document
+        );
+        if (!updatedAdmin) {
+            return res.status(404).json({ message: "Admin not found." });
+        }
+        return res.status(200).json({ message: "Admin updated successfully.", admin: updatedAdmin });
+    }
+    catch (error) {
+        console.error("Error updating admin:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+});
+exports.updateAdminByEmail = updateAdminByEmail;

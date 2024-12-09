@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllCustomers = exports.verifyCustomer = exports.addCustomer = void 0;
+exports.updateCustomerByEmail = exports.getAllCustomers = exports.verifyCustomer = exports.addCustomer = void 0;
 const Customer_1 = __importDefault(require("../models/Customer"));
 const Session_1 = require("../models/Session");
 const zod_1 = require("zod");
@@ -112,3 +112,35 @@ const getAllCustomers = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.getAllCustomers = getAllCustomers;
+const updateCustomerByEmail = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email, name, password, drivingLicenseId, verificationType, verificationId, } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: "Email is required to update customer." });
+        }
+        // Prepare the fields to update explicitly
+        const updateFields = {};
+        if (name)
+            updateFields.name = name;
+        if (password)
+            updateFields.password = password;
+        if (drivingLicenseId)
+            updateFields.drivingLicenseId = drivingLicenseId;
+        if (verificationType)
+            updateFields.verificationType = verificationType;
+        if (verificationId)
+            updateFields.verificationId = verificationId;
+        // Find and update the customer by email
+        const updatedCustomer = yield Customer_1.default.findOneAndUpdate({ email }, { $set: updateFields }, { new: true, runValidators: true } // Return the updated document
+        );
+        if (!updatedCustomer) {
+            return res.status(404).json({ message: "Customer not found." });
+        }
+        return res.status(200).json({ message: "Customer updated successfully.", customer: updatedCustomer });
+    }
+    catch (error) {
+        console.error("Error updating customer:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+});
+exports.updateCustomerByEmail = updateCustomerByEmail;

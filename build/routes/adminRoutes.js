@@ -9,4 +9,5 @@ const adminRouter = express_1.default.Router();
 adminRouter.post("/add-admin", adminControllers_1.addAdmin);
 adminRouter.post("/verify-admin", adminControllers_1.verifyAdmin);
 adminRouter.get("/all-admins", adminControllers_1.getAllAdmins);
+adminRouter.post("/update-admin", adminControllers_1.updateAdminByEmail);
 exports.default = adminRouter;

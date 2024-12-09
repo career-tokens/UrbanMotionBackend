@@ -107,4 +107,56 @@ export const verifyRetailer = async (req: Request, res: Response) => {
     } catch (err) {
       return res.status(500).json({ message: "Internal server error", error: err });
     }
-  };
+};
+  
+
+export const updateRetailerByEmail = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const {
+      email,
+      name,
+      password,
+      verificationType,
+      verificationId
+    }: {
+      email: string;
+      name?: string;
+      password?: string;
+      verificationType?: "aadhar" | "pan";
+      verificationId?: string;
+    } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required to update retailer." });
+    }
+
+    // Prepare the fields to update explicitly
+    const updateFields: Partial<{
+      name: string;
+      password: string;
+      verificationType: "aadhar" | "pan";
+      verificationId: string;
+    }> = {};
+
+    if (name) updateFields.name = name;
+    if (password) updateFields.password = password;
+    if (verificationType) updateFields.verificationType = verificationType;
+    if (verificationId) updateFields.verificationId = verificationId;
+
+    // Find and update the retailer by email
+    const updatedRetailer = await Retailer.findOneAndUpdate(
+      { email },
+      { $set: updateFields },
+      { new: true, runValidators: true } // Return the updated document
+    );
+
+    if (!updatedRetailer) {
+      return res.status(404).json({ message: "Retailer not found." });
+    }
+
+    return res.status(200).json({ message: "Retailer updated successfully.", retailer: updatedRetailer });
+  } catch (error) {
+    console.error("Error updating retailer:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};

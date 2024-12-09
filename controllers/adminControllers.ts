@@ -70,3 +70,51 @@ export const getAllAdmins = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Error retrieving admins", error });
   }
 };
+
+
+export const updateAdminByEmail = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const {
+      email,
+      position,
+      name,
+      password
+    }: {
+      email: string;
+      position?: string;
+      name?: string;
+      password?: string;
+    } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required to update admin." });
+    }
+
+    // Prepare the fields to update explicitly
+    const updateFields: Partial<{
+      position: string;
+      name: string;
+      password: string;
+    }> = {};
+
+    if (position) updateFields.position = position;
+    if (name) updateFields.name = name;
+    if (password) updateFields.password = password;
+
+    // Find and update the admin by email
+    const updatedAdmin = await Admin.findOneAndUpdate(
+      { email },
+      { $set: updateFields },
+      { new: true, runValidators: true } // Return the updated document
+    );
+
+    if (!updatedAdmin) {
+      return res.status(404).json({ message: "Admin not found." });
+    }
+
+    return res.status(200).json({ message: "Admin updated successfully.", admin: updatedAdmin });
+  } catch (error) {
+    console.error("Error updating admin:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
