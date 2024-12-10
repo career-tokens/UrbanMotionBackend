@@ -1,6 +1,8 @@
+//@ts-nocheck
 import { Request, Response } from "express";
 import Car from "../models/Car";
 import Customer from "../models/Customer";
+import Retailer from "../models/Retailer";
 
 /**
  * Add a new car
@@ -17,11 +19,13 @@ export const addCar = async (req: Request, res: Response) => {
   } = req.body;
 
   try {
+    // Check if the car already exists
     const existingCar = await Car.findOne({ registrationNumber });
     if (existingCar) {
       return res.status(400).json({ message: "Car with this registration number already exists" });
     }
 
+    // Create the car
     const newCar = await Car.create({
       registrationNumber,
       owner,
@@ -31,12 +35,19 @@ export const addCar = async (req: Request, res: Response) => {
       carImage: carImage || null, // Set to null if not provided
     });
 
+    // Update the owner's carsSubmittedIdArray
+    await Retailer.findByIdAndUpdate(
+      owner,
+      { $push: { carsSubmittedIdArray: newCar._id } },
+      { new: true }
+    );
+
     return res.status(201).json({ message: "Car added successfully", car: newCar });
   } catch (err) {
+    console.error("Error adding car:", err);
     return res.status(500).json({ message: "Internal server error", error: err });
   }
 };
-
 /**
  * Get all available cars (cars that are not handed out)
  * GET /get-available-cars
@@ -169,6 +180,7 @@ export const deleteCarByRegistrationNumber = async (req: Request, res: Response)
   const { registrationNumber } = req.query;
 
   try {
+    // Find and delete the car
     const car = await Car.findOneAndDelete({ registrationNumber });
 
     if (!car) {
@@ -177,20 +189,28 @@ export const deleteCarByRegistrationNumber = async (req: Request, res: Response)
       });
     }
 
+    // Update the owner's carsSubmittedIdArray
+    await Retailer.findByIdAndUpdate(
+      car.owner,
+      { $pull: { carsSubmittedIdArray: car._id } },
+      { new: true }
+    );
+
     return res.status(200).json({
       success: true,
       message: "Car deleted successfully",
       deletedCar: car,
     });
-  } catch (error:any) {
+  } catch (error: any) {
     console.error("Error deleting car:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "An error occurred while deleting the car",
       error: error.message,
     });
   }
 };
+
 
 
 export default {

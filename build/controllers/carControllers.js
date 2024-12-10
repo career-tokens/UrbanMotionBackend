@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteCarByRegistrationNumber = exports.getCarDetailsByRegistrationNumber = exports.viewAllCars = exports.returnCar = exports.bookCar = exports.getAvailableCars = exports.addCar = void 0;
 const Car_1 = __importDefault(require("../models/Car"));
 const Customer_1 = __importDefault(require("../models/Customer"));
+const Retailer_1 = __importDefault(require("../models/Retailer"));
 /**
  * Add a new car
  * POST /add-car
@@ -23,10 +24,12 @@ const addCar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { registrationNumber, owner, model, carType, carPricing, carImage, // Optional field for car image
      } = req.body;
     try {
+        // Check if the car already exists
         const existingCar = yield Car_1.default.findOne({ registrationNumber });
         if (existingCar) {
             return res.status(400).json({ message: "Car with this registration number already exists" });
         }
+        // Create the car
         const newCar = yield Car_1.default.create({
             registrationNumber,
             owner,
@@ -35,9 +38,12 @@ const addCar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             carPricing,
             carImage: carImage || null, // Set to null if not provided
         });
+        // Update the owner's carsSubmittedIdArray
+        yield Retailer_1.default.findByIdAndUpdate(owner, { $push: { carsSubmittedIdArray: newCar._id } }, { new: true });
         return res.status(201).json({ message: "Car added successfully", car: newCar });
     }
     catch (err) {
+        console.error("Error adding car:", err);
         return res.status(500).json({ message: "Internal server error", error: err });
     }
 });
@@ -165,12 +171,15 @@ exports.getCarDetailsByRegistrationNumber = getCarDetailsByRegistrationNumber;
 const deleteCarByRegistrationNumber = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { registrationNumber } = req.query;
     try {
+        // Find and delete the car
         const car = yield Car_1.default.findOneAndDelete({ registrationNumber });
         if (!car) {
             return res.status(404).json({
                 message: "Car with this registration number does not exist",
             });
         }
+        // Update the owner's carsSubmittedIdArray
+        yield Retailer_1.default.findByIdAndUpdate(car.owner, { $pull: { carsSubmittedIdArray: car._id } }, { new: true });
         return res.status(200).json({
             success: true,
             message: "Car deleted successfully",
@@ -179,7 +188,7 @@ const deleteCarByRegistrationNumber = (req, res) => __awaiter(void 0, void 0, vo
     }
     catch (error) {
         console.error("Error deleting car:", error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "An error occurred while deleting the car",
             error: error.message,
