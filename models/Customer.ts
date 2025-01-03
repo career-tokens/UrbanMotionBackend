@@ -4,6 +4,7 @@ interface ICustomer extends Document {
   name: string;
   carCurrentlyBookedId: mongoose.Types.ObjectId | null;
   email: string;
+  plan: string | null;
   password: string;
   drivingLicenseId: string;
   verificationType: "aadhar" | "pan";
@@ -16,6 +17,7 @@ const customerSchema = new Schema<ICustomer>({
   carCurrentlyBookedId: { type: String },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  plan:{type:String,default:null},
   drivingLicenseId: { type: String, required: true },
   verificationType: { type: String, enum: ["aadhar", "pan"], required: true },
   verificationId: { type: String, required: true },

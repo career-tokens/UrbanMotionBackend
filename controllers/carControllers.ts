@@ -211,6 +211,46 @@ export const deleteCarByRegistrationNumber = async (req: Request, res: Response)
   }
 };
 
+//update car
+const updateCarDetails = async (req: Request, res: Response) => {
+  try {
+    const { registrationNumber } = req.params;
+    const { model, carType, carImage, carPricing } = req.body;
+
+    // Find the car by registration number and update the allowed fields
+    const updatedCar = await Car.findOneAndUpdate(
+      { registrationNumber },
+      {
+        $set: {
+          model,
+          carType,
+          carImage,
+          carPricing
+        }
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedCar) {
+      return res.status(404).json({
+        message: "Car with this registration number does not exist",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Car details updated successfully",
+      updatedCar,
+    });
+  } catch (error: any) {
+    console.error("Error updating car details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the car details",
+      error: error.message,
+    });
+  }
+};
 
 
 export default {
@@ -218,5 +258,6 @@ export default {
   getAvailableCars,
   bookCar,
   returnCar,
-  viewAllCars
+  viewAllCars,
+  updateCarDetails
 };

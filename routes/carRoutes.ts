@@ -1,5 +1,5 @@
 import express from "express";
-import carControllers, { deleteCarByRegistrationNumber, getAvailableCars, getCarDetailsByRegistrationNumber, viewAllCars } from "../controllers/carControllers";
+import carControllers, {deleteCarByRegistrationNumber, getAvailableCars, getCarDetailsByRegistrationNumber, viewAllCars } from "../controllers/carControllers";
 
 const carRouter = express.Router();
 
@@ -10,5 +10,6 @@ carRouter.post("/return-car", carControllers.returnCar);
 carRouter.get("/all-cars", viewAllCars);
 carRouter.get("/car", getCarDetailsByRegistrationNumber);
 carRouter.delete("/delete-car", deleteCarByRegistrationNumber);
+carRouter.patch('/update-car/:registrationNumber', carControllers.updateCarDetails);
 
 export default carRouter;

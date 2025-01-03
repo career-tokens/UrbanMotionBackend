@@ -3,6 +3,7 @@ import Customer from "../models/Customer";
 import { Session } from "../models/Session";
 import { z } from "zod";
 import sendEmail from "../utils/sendMail";
+import Car from "../models/Car";
 
 const addCustomerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -167,6 +168,47 @@ export const updateCustomerByEmail = async (req: Request, res: Response): Promis
     return res.status(200).json({ message: "Customer updated successfully.", customer: updatedCustomer });
   } catch (error) {
     console.error("Error updating customer:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+export const updateCarAndCustomer = async (req: Request, res: Response): Promise<Response> => {
+  const { registrationNumber, plan, durationGivenFor } = req.body;
+
+  try {
+    // Find the car by registration number
+    const car = await Car.findOne({ registrationNumber });
+
+    if (!car) {
+      return res.status(404).json({ message: "Car not found." });
+    }
+
+    // Update the car fields
+    car.durationGivenFor = durationGivenFor;
+
+    // Save the updated car
+    const updatedCar = await car.save();
+
+    // Find the customer by carCurrentlyBookedId
+    const customer = await Customer.findOne({ _id: car.handedTo });
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found." });
+    }
+
+    // Update the customer fields
+    customer.plan = plan;
+
+    // Save the updated customer
+    const updatedCustomer = await customer.save();
+
+    return res.status(200).json({
+      message: "Car and Customer updated successfully.",
+      car: updatedCar,
+      customer: updatedCustomer
+    });
+  } catch (error) {
+    console.error("Error updating car and customer:", error);
     return res.status(500).json({ message: "Internal server error." });
   }
 };
