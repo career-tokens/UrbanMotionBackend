@@ -17,6 +17,7 @@ const Retailer_1 = __importDefault(require("../models/Retailer"));
 const Session_1 = require("../models/Session");
 const zod_1 = require("zod");
 const sendMail_1 = __importDefault(require("../utils/sendMail"));
+const bcrypt_1 = __importDefault(require("bcrypt"));
 // Define Zod schema for retailer validation
 const addRetailerSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, "Name is required"),
@@ -34,8 +35,10 @@ const addRetailer = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (existingRetailer) {
             return res.status(400).json({ message: "Retailer already exists" });
         }
-        // Create a new retailer
-        const retailer = yield Retailer_1.default.create(validatedData);
+        // Hash the password
+        const hashedPassword = yield bcrypt_1.default.hash(validatedData.password, 10);
+        // Create a new retailer with hashed password
+        const retailer = yield Retailer_1.default.create(Object.assign(Object.assign({}, validatedData), { password: hashedPassword }));
         // Send a verification email
         const verificationLink = `${process.env.BACKEND_URL}/api/verify/verify-retailer?id=${retailer._id}`;
         const emailSubject = "Verify Your Email - Retailer Registration";
@@ -51,13 +54,11 @@ const addRetailer = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
     catch (error) {
         if (error instanceof zod_1.z.ZodError) {
-            // Handle Zod validation errors
             return res.status(400).json({
                 message: "Validation error",
                 errors: error.errors.map((err) => ({ path: err.path, message: err.message })),
             });
         }
-        // Handle other errors
         return res.status(500).json({ message: "Error adding retailer", error });
     }
 });
@@ -68,9 +69,9 @@ const verifyRetailer = (req, res) => __awaiter(void 0, void 0, void 0, function*
         // Check if an account with the provided email exists
         const retailer = yield Retailer_1.default.findOne({ email });
         if (!retailer) {
-            return res
-                .status(404)
-                .json({ message: "No account found with this email. Please sign up." });
+            return res.status(404).json({
+                message: "No account found with this email. Please sign up.",
+            });
         }
         // Check if the email is not verified
         if (!retailer.isVerified) {
@@ -87,17 +88,21 @@ const verifyRetailer = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 message: "Your email is not verified. A verification email has been sent.",
             });
         }
-        // Check if the password is incorrect
-        if (retailer.password !== password) {
+        // Compare the provided password with the hashed password
+        const isPasswordCorrect = yield bcrypt_1.default.compare(password, retailer.password);
+        if (!isPasswordCorrect) {
             return res.status(401).json({ message: "Incorrect password." });
         }
         // If all checks pass, create a session
         const session = yield Session_1.Session.create({ data: retailer });
-        return res
-            .status(200)
-            .json({ verified: true, sessionId: session._id, message: "Login successful." });
+        return res.status(200).json({
+            verified: true,
+            sessionId: session._id,
+            message: "Login successful.",
+        });
     }
     catch (err) {
+        console.error("Error verifying retailer:", err);
         return res.status(500).json({ message: "Internal server error", error: err });
     }
 });
@@ -114,7 +119,7 @@ const getAllRetailers = (req, res) => __awaiter(void 0, void 0, void 0, function
 exports.getAllRetailers = getAllRetailers;
 const updateRetailerByEmail = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { email, name, password, verificationType, verificationId } = req.body;
+        const { email, name, password, verificationType, verificationId, } = req.body;
         if (!email) {
             return res.status(400).json({ message: "Email is required to update retailer." });
         }
@@ -122,15 +127,16 @@ const updateRetailerByEmail = (req, res) => __awaiter(void 0, void 0, void 0, fu
         const updateFields = {};
         if (name)
             updateFields.name = name;
-        if (password)
-            updateFields.password = password;
+        // Hash the new password if provided
+        if (password) {
+            updateFields.password = yield bcrypt_1.default.hash(password, 10);
+        }
         if (verificationType)
             updateFields.verificationType = verificationType;
         if (verificationId)
             updateFields.verificationId = verificationId;
         // Find and update the retailer by email
-        const updatedRetailer = yield Retailer_1.default.findOneAndUpdate({ email }, { $set: updateFields }, { new: true, runValidators: true } // Return the updated document
-        );
+        const updatedRetailer = yield Retailer_1.default.findOneAndUpdate({ email }, { $set: updateFields }, { new: true, runValidators: true });
         if (!updatedRetailer) {
             return res.status(404).json({ message: "Retailer not found." });
         }

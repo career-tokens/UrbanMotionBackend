@@ -12,11 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateCustomerByEmail = exports.getAllCustomers = exports.verifyCustomer = exports.addCustomer = void 0;
+exports.updateCarAndCustomer = exports.updateCustomerByEmail = exports.getAllCustomers = exports.verifyCustomer = exports.addCustomer = void 0;
 const Customer_1 = __importDefault(require("../models/Customer"));
 const Session_1 = require("../models/Session");
 const zod_1 = require("zod");
 const sendMail_1 = __importDefault(require("../utils/sendMail"));
+const Car_1 = __importDefault(require("../models/Car"));
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const addCustomerSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, "Name is required"),
     email: zod_1.z.string().email("Invalid email address"),
@@ -34,8 +36,10 @@ const addCustomer = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (existingCustomer) {
             return res.status(400).json({ message: "Customer already exists" });
         }
-        // Create a new customer
-        const customer = yield Customer_1.default.create(validatedData);
+        // Hash the password
+        const hashedPassword = yield bcrypt_1.default.hash(validatedData.password, 10);
+        // Create a new customer with the hashed password
+        const customer = yield Customer_1.default.create(Object.assign(Object.assign({}, validatedData), { password: hashedPassword }));
         // Send a verification email
         const verificationLink = `${process.env.BACKEND_URL}/api/verify/verify-customer?id=${customer._id}`;
         const emailSubject = "Verify Your Email - Customer Registration";
@@ -47,7 +51,7 @@ const addCustomer = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     `;
         yield (0, sendMail_1.default)(customer.email, emailSubject, emailHtml);
         // Respond with success
-        res.status(201).json({ message: "Verification link has been sent succesfully !" });
+        res.status(201).json({ message: "Verification link has been sent successfully!" });
     }
     catch (error) {
         if (error instanceof zod_1.z.ZodError) {
@@ -88,7 +92,8 @@ const verifyCustomer = (req, res) => __awaiter(void 0, void 0, void 0, function*
             });
         }
         // Check if the password is incorrect
-        if (customer.password !== password) {
+        const isPasswordValid = yield bcrypt_1.default.compare(password, customer.password);
+        if (!isPasswordValid) {
             return res.status(401).json({ message: "Incorrect password." });
         }
         // If all checks pass, create a session
@@ -123,7 +128,7 @@ const updateCustomerByEmail = (req, res) => __awaiter(void 0, void 0, void 0, fu
         if (name)
             updateFields.name = name;
         if (password)
-            updateFields.password = password;
+            updateFields.password = yield bcrypt_1.default.hash(password, 10);
         if (drivingLicenseId)
             updateFields.drivingLicenseId = drivingLicenseId;
         if (verificationType)
@@ -144,3 +149,36 @@ const updateCustomerByEmail = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.updateCustomerByEmail = updateCustomerByEmail;
+const updateCarAndCustomer = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { registrationNumber, plan, durationGivenFor } = req.body;
+    try {
+        // Find the car by registration number
+        const car = yield Car_1.default.findOne({ registrationNumber });
+        if (!car) {
+            return res.status(404).json({ message: "Car not found." });
+        }
+        // Update the car fields
+        car.durationGivenFor = durationGivenFor;
+        // Save the updated car
+        const updatedCar = yield car.save();
+        // Find the customer by carCurrentlyBookedId
+        const customer = yield Customer_1.default.findOne({ _id: car.handedTo });
+        if (!customer) {
+            return res.status(404).json({ message: "Customer not found." });
+        }
+        // Update the customer fields
+        customer.plan = plan;
+        // Save the updated customer
+        const updatedCustomer = yield customer.save();
+        return res.status(200).json({
+            message: "Car and Customer updated successfully.",
+            car: updatedCar,
+            customer: updatedCustomer
+        });
+    }
+    catch (error) {
+        console.error("Error updating car and customer:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+});
+exports.updateCarAndCustomer = updateCarAndCustomer;

@@ -23,6 +23,7 @@ const addAdminSchema = zod_1.z.object({
     position: zod_1.z.string().min(1, "Position is required"),
     passcode: zod_1.z.string().min(1, "Passcode is required"),
 });
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const addAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         // Validate request body using Zod schema
@@ -36,9 +37,11 @@ const addAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (existingAdmin) {
             return res.status(400).json({ message: "Admin already exists" });
         }
+        // Hash the password
+        const hashedPassword = yield bcrypt_1.default.hash(validatedData.password, 10);
         // Create a new admin
-        const { name, email, password, position } = validatedData;
-        const admin = yield Admin_1.default.create({ name, email, password, position });
+        const { name, email, position } = validatedData;
+        const admin = yield Admin_1.default.create({ name, email, password: hashedPassword, position });
         res.status(201).json(admin);
     }
     catch (error) {
@@ -57,8 +60,13 @@ exports.addAdmin = addAdmin;
 const verifyAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
     try {
-        const admin = yield Admin_1.default.findOne({ email, password });
+        const admin = yield Admin_1.default.findOne({ email });
         if (!admin) {
+            return res.status(401).json({ verified: false, message: "Invalid credentials" });
+        }
+        // Compare the provided password with the hashed password
+        const isPasswordCorrect = yield bcrypt_1.default.compare(password, admin.password);
+        if (!isPasswordCorrect) {
             return res.status(401).json({ verified: false, message: "Invalid credentials" });
         }
         // Create a session
@@ -92,8 +100,10 @@ const updateAdminByEmail = (req, res) => __awaiter(void 0, void 0, void 0, funct
             updateFields.position = position;
         if (name)
             updateFields.name = name;
-        if (password)
-            updateFields.password = password;
+        if (password) {
+            // Hash the new password before updating
+            updateFields.password = yield bcrypt_1.default.hash(password, 10);
+        }
         // Find and update the admin by email
         const updatedAdmin = yield Admin_1.default.findOneAndUpdate({ email }, { $set: updateFields }, { new: true, runValidators: true } // Return the updated document
         );

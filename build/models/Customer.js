@@ -39,6 +39,7 @@ const customerSchema = new mongoose_1.Schema({
     carCurrentlyBookedId: { type: String },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    plan: { type: String, default: null },
     drivingLicenseId: { type: String, required: true },
     verificationType: { type: String, enum: ["aadhar", "pan"], required: true },
     verificationId: { type: String, required: true },

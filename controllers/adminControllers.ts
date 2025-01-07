@@ -11,6 +11,8 @@ const addAdminSchema = z.object({
   passcode: z.string().min(1, "Passcode is required"),
 });
 
+import bcrypt from "bcrypt";
+
 export const addAdmin = async (req: Request, res: Response) => {
   try {
     // Validate request body using Zod schema
@@ -27,9 +29,12 @@ export const addAdmin = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Admin already exists" });
     }
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+
     // Create a new admin
-    const { name, email, password, position } = validatedData;
-    const admin = await Admin.create({ name, email, password, position });
+    const { name, email, position } = validatedData;
+    const admin = await Admin.create({ name, email, password: hashedPassword, position });
     res.status(201).json(admin);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -49,8 +54,14 @@ export const verifyAdmin = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   try {
-    const admin = await Admin.findOne({ email, password });
+    const admin = await Admin.findOne({ email });
     if (!admin) {
+      return res.status(401).json({ verified: false, message: "Invalid credentials" });
+    }
+
+    // Compare the provided password with the hashed password
+    const isPasswordCorrect = await bcrypt.compare(password, admin.password);
+    if (!isPasswordCorrect) {
       return res.status(401).json({ verified: false, message: "Invalid credentials" });
     }
 
@@ -99,7 +110,10 @@ export const updateAdminByEmail = async (req: Request, res: Response): Promise<R
 
     if (position) updateFields.position = position;
     if (name) updateFields.name = name;
-    if (password) updateFields.password = password;
+    if (password) {
+      // Hash the new password before updating
+      updateFields.password = await bcrypt.hash(password, 10);
+    }
 
     // Find and update the admin by email
     const updatedAdmin = await Admin.findOneAndUpdate(

@@ -3,6 +3,7 @@ import  Retailer  from "../models/Retailer";
 import { Session } from "../models/Session";
 import { z } from "zod";
 import sendEmail from "../utils/sendMail";
+import bcrypt from "bcrypt";
 
 // Define Zod schema for retailer validation
 const addRetailerSchema = z.object({
@@ -24,8 +25,14 @@ export const addRetailer = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Retailer already exists" });
     }
 
-    // Create a new retailer
-    const retailer = await Retailer.create(validatedData);
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+
+    // Create a new retailer with hashed password
+    const retailer = await Retailer.create({
+      ...validatedData,
+      password: hashedPassword,
+    });
 
     // Send a verification email
     const verificationLink = `${process.env.BACKEND_URL}/api/verify/verify-retailer?id=${retailer._id}`;
@@ -43,14 +50,11 @@ export const addRetailer = async (req: Request, res: Response) => {
     res.status(201).json({ message: "Verification link has been sent successfully!" });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // Handle Zod validation errors
       return res.status(400).json({
         message: "Validation error",
         errors: error.errors.map((err) => ({ path: err.path, message: err.message })),
       });
     }
-
-    // Handle other errors
     return res.status(500).json({ message: "Error adding retailer", error });
   }
 };
@@ -62,9 +66,9 @@ export const verifyRetailer = async (req: Request, res: Response) => {
     // Check if an account with the provided email exists
     const retailer = await Retailer.findOne({ email });
     if (!retailer) {
-      return res
-        .status(404)
-        .json({ message: "No account found with this email. Please sign up." });
+      return res.status(404).json({
+        message: "No account found with this email. Please sign up.",
+      });
     }
 
     // Check if the email is not verified
@@ -85,20 +89,25 @@ export const verifyRetailer = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if the password is incorrect
-    if (retailer.password !== password) {
+    // Compare the provided password with the hashed password
+    const isPasswordCorrect = await bcrypt.compare(password, retailer.password);
+    if (!isPasswordCorrect) {
       return res.status(401).json({ message: "Incorrect password." });
     }
 
     // If all checks pass, create a session
     const session = await Session.create({ data: retailer });
-    return res
-      .status(200)
-      .json({ verified: true, sessionId: session._id, message: "Login successful." });
+    return res.status(200).json({
+      verified: true,
+      sessionId: session._id,
+      message: "Login successful.",
+    });
   } catch (err) {
+    console.error("Error verifying retailer:", err);
     return res.status(500).json({ message: "Internal server error", error: err });
   }
 };
+
 
   export const getAllRetailers = async (req: Request, res: Response) => {
     try {
@@ -117,7 +126,7 @@ export const updateRetailerByEmail = async (req: Request, res: Response): Promis
       name,
       password,
       verificationType,
-      verificationId
+      verificationId,
     }: {
       email: string;
       name?: string;
@@ -139,7 +148,12 @@ export const updateRetailerByEmail = async (req: Request, res: Response): Promis
     }> = {};
 
     if (name) updateFields.name = name;
-    if (password) updateFields.password = password;
+
+    // Hash the new password if provided
+    if (password) {
+      updateFields.password = await bcrypt.hash(password, 10);
+    }
+
     if (verificationType) updateFields.verificationType = verificationType;
     if (verificationId) updateFields.verificationId = verificationId;
 
@@ -147,7 +161,7 @@ export const updateRetailerByEmail = async (req: Request, res: Response): Promis
     const updatedRetailer = await Retailer.findOneAndUpdate(
       { email },
       { $set: updateFields },
-      { new: true, runValidators: true } // Return the updated document
+      { new: true, runValidators: true }
     );
 
     if (!updatedRetailer) {

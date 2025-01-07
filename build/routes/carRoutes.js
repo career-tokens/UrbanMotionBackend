@@ -46,4 +46,5 @@ carRouter.post("/return-car", carControllers_1.default.returnCar);
 carRouter.get("/all-cars", carControllers_1.viewAllCars);
 carRouter.get("/car", carControllers_1.getCarDetailsByRegistrationNumber);
 carRouter.delete("/delete-car", carControllers_1.deleteCarByRegistrationNumber);
+carRouter.patch('/update-car/:registrationNumber', carControllers_1.default.updateCarDetails);
 exports.default = carRouter;

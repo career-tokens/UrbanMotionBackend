@@ -4,6 +4,7 @@ import { Session } from "../models/Session";
 import { z } from "zod";
 import sendEmail from "../utils/sendMail";
 import Car from "../models/Car";
+import bcrypt from "bcrypt";
 
 const addCustomerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -28,8 +29,11 @@ export const addCustomer = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Customer already exists" });
     }
 
-    // Create a new customer
-    const customer = await Customer.create(validatedData);
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+
+    // Create a new customer with the hashed password
+    const customer = await Customer.create({ ...validatedData, password: hashedPassword });
 
     // Send a verification email
     const verificationLink = `${process.env.BACKEND_URL}/api/verify/verify-customer?id=${customer._id}`;
@@ -44,7 +48,7 @@ export const addCustomer = async (req: Request, res: Response) => {
     await sendEmail(customer.email, emailSubject, emailHtml);
 
     // Respond with success
-    res.status(201).json({ message: "Verification link has been sent succesfully !" });
+    res.status(201).json({ message: "Verification link has been sent successfully!" });
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Handle Zod validation errors
@@ -91,7 +95,8 @@ export const verifyCustomer = async (req: Request, res: Response) => {
     }
 
     // Check if the password is incorrect
-    if (customer.password !== password) {
+    const isPasswordValid = await bcrypt.compare(password, customer.password);
+    if (!isPasswordValid) {
       return res.status(401).json({ message: "Incorrect password." });
     }
 
@@ -149,7 +154,7 @@ export const updateCustomerByEmail = async (req: Request, res: Response): Promis
     }> = {};
 
     if (name) updateFields.name = name;
-    if (password) updateFields.password = password;
+    if (password) updateFields.password = await bcrypt.hash(password, 10);
     if (drivingLicenseId) updateFields.drivingLicenseId = drivingLicenseId;
     if (verificationType) updateFields.verificationType = verificationType;
     if (verificationId) updateFields.verificationId = verificationId;
