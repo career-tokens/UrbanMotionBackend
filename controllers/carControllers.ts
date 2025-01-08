@@ -98,38 +98,70 @@ export const bookCar = async (req: Request, res: Response) => {
  * Return a car
  * POST /return-car
  */
+import Car from "../models/Car";
+import Customer from "../models/Customer";
+import Retailer from "../models/Retailer";
+import Booking from "../models/Booking";
+import { Request, Response } from "express";
+
 export const returnCar = async (req: Request, res: Response) => {
-  const { registrationNumber, rating } = req.body;
+  const { registrationNumber, rating, price } = req.body; // Include price in the request body
 
   try {
+    // Find the car that's currently handed out
     const car = await Car.findOne({ registrationNumber, isHanded: true });
     if (!car) {
       return res.status(404).json({ message: "Car is not currently handed out" });
     }
-    
+
+    // Find the customer who rented the car
     const customer = await Customer.findById(car.handedTo);
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
+    // Find the retailer who owns the car
+    const retailer = await Retailer.findById(car.owner);
+    if (!retailer) {
+      return res.status(404).json({ message: "Retailer not found" });
+    }
+
+    // Create a new booking record for the returned car
+    const booking = new Booking({
+      registrationNumber: car.registrationNumber,
+      carModel: car.model, // Using carModel as per previous implementation
+      startDate: car.handedOn,
+      endDate: new Date(),
+      customerId: customer._id,
+      price: price, // Use the price from the request body
+      retailerId: retailer._id,
+    });
+    await booking.save();
+
+    // Update the customer's car booking status
     customer.carCurrentlyBookedId = null;
     await customer.save();
 
+    // Update the car's status
     car.isHanded = false;
     car.handedTo = null;
     car.handedOn = null;
     car.durationGivenFor = "";
     if (rating !== undefined && rating > 0) {
-      // Calculate the average rating
-      car.rating = (car.rating + rating) / 2;
+      car.rating = (car.rating + rating) / 2; // Update the car's rating
     }
     await car.save();
 
-    return res.status(200).json({ message: "Car returned successfully", car });
+    return res.status(200).json({
+      message: "Car returned successfully",
+      car,
+      booking,
+    });
   } catch (err) {
     return res.status(500).json({ message: "Internal server error", error: err });
   }
 };
+
 
 /**
  * View all cars

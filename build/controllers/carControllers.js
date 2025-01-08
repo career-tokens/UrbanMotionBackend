@@ -91,33 +91,53 @@ const bookCar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.bookCar = bookCar;
-/**
- * Return a car
- * POST /return-car
- */
+const Booking_1 = __importDefault(require("../models/Booking"));
 const returnCar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { registrationNumber, rating } = req.body;
+    const { registrationNumber, rating, price } = req.body; // Include price in the request body
     try {
+        // Find the car that's currently handed out
         const car = yield Car_1.default.findOne({ registrationNumber, isHanded: true });
         if (!car) {
             return res.status(404).json({ message: "Car is not currently handed out" });
         }
+        // Find the customer who rented the car
         const customer = yield Customer_1.default.findById(car.handedTo);
         if (!customer) {
             return res.status(404).json({ message: "Customer not found" });
         }
+        // Find the retailer who owns the car
+        const retailer = yield Retailer_1.default.findById(car.owner);
+        if (!retailer) {
+            return res.status(404).json({ message: "Retailer not found" });
+        }
+        // Create a new booking record for the returned car
+        const booking = new Booking_1.default({
+            registrationNumber: car.registrationNumber,
+            carModel: car.model, // Using carModel as per previous implementation
+            startDate: car.handedOn,
+            endDate: new Date(),
+            customerId: customer._id,
+            price: price, // Use the price from the request body
+            retailerId: retailer._id,
+        });
+        yield booking.save();
+        // Update the customer's car booking status
         customer.carCurrentlyBookedId = null;
         yield customer.save();
+        // Update the car's status
         car.isHanded = false;
         car.handedTo = null;
         car.handedOn = null;
         car.durationGivenFor = "";
         if (rating !== undefined && rating > 0) {
-            // Calculate the average rating
-            car.rating = (car.rating + rating) / 2;
+            car.rating = (car.rating + rating) / 2; // Update the car's rating
         }
         yield car.save();
-        return res.status(200).json({ message: "Car returned successfully", car });
+        return res.status(200).json({
+            message: "Car returned successfully",
+            car,
+            booking,
+        });
     }
     catch (err) {
         return res.status(500).json({ message: "Internal server error", error: err });
